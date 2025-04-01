@@ -20,6 +20,7 @@ else:
 st.title("🚗 Used Car Market Dashboard")
 
 # 📌 **Sidebar Filters**
+st.sidebar.header("🚀Welcome to Our Dashboard!🎉📊")
 st.sidebar.header("🔍 Filters")
 
 # Brand Filter
