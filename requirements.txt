@@ -1,0 +1,10 @@
+streamlit
+dash
+pandas
+numpy
+plotly
+plotly==6.0.0
+streamlit
+matplotlib
+seaborn
+scipy
