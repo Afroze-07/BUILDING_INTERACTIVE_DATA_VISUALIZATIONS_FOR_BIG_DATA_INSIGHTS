@@ -123,4 +123,4 @@ if uploaded_file:
     st.write(df)
 
 else:
-    st.warning("⚠️ Please upload a CSV file to proceed! (Make sure the dataset has the required columns, such as 'brand', 'owner', 'transmission', 'fueltype', etc.)")
+    st.warning("⚠️ Please upload a CSV file to proceed! Ensure the dataset contains the required columns such as 'brand', 'owner', 'transmission', 'fueltype', 'kmdriven', 'year', and 'askprice'. If the dataset is missing any of these columns, some features may not work correctly.")
