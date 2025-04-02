@@ -19,6 +19,7 @@ if uploaded_file:
     # Fixing posteddate column
     if "posteddate" in df.columns:
         df["posteddate"] = pd.to_datetime(df["posteddate"], format="%b-%y", errors="coerce")
+        df["posted_month"] = df["posteddate"].dt.strftime("%Y-%m")  # Extract Month-Year
     else:
         st.error("⚠️ 'posteddate' column is missing in the dataset!")
 
@@ -47,18 +48,28 @@ if uploaded_file:
 
     # Kilometer & Year Filters
     if "kmdriven" in df.columns and "year" in df.columns:
-        df["kmdriven"] = pd.to_numeric(df["kmdriven"], errors="coerce")
+        df["kmdriven"] = pd.to_numeric(df["kmdriven"], errors="coerce")  # Convert non-numeric to NaN
         df["year"] = pd.to_numeric(df["year"], errors="coerce")
         df = df.dropna(subset=["kmdriven", "year"])
 
-        min_km, max_km = int(df["kmdriven"].min()), int(df["kmdriven"].max())
-        min_year, max_year = int(df["year"].min()), int(df["year"].max())
+        if not df.empty:
+            min_km, max_km = int(df["kmdriven"].min()), int(df["kmdriven"].max())
+            min_year, max_year = int(df["year"].min()), int(df["year"].max())
+        else:
+            min_km, max_km = 0, 100000  # Default values
+            min_year, max_year = 2000, 2025
 
         km_filter = st.sidebar.slider("Kilometers Driven:", min_km, max_km, (min_km, max_km), key="km_chart")
         year_filter = st.sidebar.slider("Year:", min_year, max_year, (min_year, max_year), key="year_chart")
 
         df = df[(df["kmdriven"] >= km_filter[0]) & (df["kmdriven"] <= km_filter[1])]
         df = df[(df["year"] >= year_filter[0]) & (df["year"] <= year_filter[1])]
+
+    # Price Filter (Optional)
+    if "askprice" in df.columns:
+        min_price, max_price = int(df["askprice"].min()), int(df["askprice"].max())
+        price_filter = st.sidebar.slider("Filter by Asking Price:", min_price, max_price, (min_price, max_price))
+        df = df[(df["askprice"] >= price_filter[0]) & (df["askprice"] <= price_filter[1])]
 
     # 📊 **Charts**
     if not df.empty:
@@ -80,8 +91,7 @@ if uploaded_file:
         st.plotly_chart(fig_km)
 
         st.subheader("📅 Cars Listed Over Time")
-        if "posteddate" in df.columns:
-            df["posted_month"] = df["posteddate"].dt.strftime("%Y-%m")
+        if "posted_month" in df.columns:
             fig_time = px.line(df.groupby("posted_month").size().reset_index(name="count"), x="posted_month", y="count", title="Car Listings Over Time")
             st.plotly_chart(fig_time)
 
