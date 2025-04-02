@@ -33,7 +33,7 @@ st.markdown("""
 st.title("🚗 Used Car Market Dashboard")
 
 # 📂 **File Upload**
-st.sidebar.header("🚀 Welcome to Our Dashboard! 🎉📊")
+st.sidebar.header("🚀Welcome to Our Dashboard!📊")
 st.sidebar.header("📂 Upload Your Dataset")
 uploaded_file = st.sidebar.file_uploader("Upload your CSV file (Make sure it's in the correct format)", type=["csv"])
 
@@ -93,7 +93,7 @@ if uploaded_file:
     df = df[(df["year"] >= year_filter[0]) & (df["year"] <= year_filter[1])] if "year" in df.columns else df
 
     # Dynamic Title with Filter Counts
-    st.subheader(f"🚗 Used Car Market Dashboard ({len(df)} records displayed)")
+    st.subheader(f"Showing {len(df)} Cars After Applying Filters")
 
     # 📊 **Charts**
     st.subheader("📊 Car Brands Distribution")
