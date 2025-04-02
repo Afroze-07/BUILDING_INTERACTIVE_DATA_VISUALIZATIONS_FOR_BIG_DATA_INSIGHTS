@@ -93,7 +93,7 @@ if uploaded_file:
     df = df[(df["year"] >= year_filter[0]) & (df["year"] <= year_filter[1])] if "year" in df.columns else df
 
     # Dynamic Title with Filter Counts
-    st.title(f"🚗 Used Car Market Dashboard ({len(df)} records displayed)")
+    st.subheader(f"🚗 Used Car Market Dashboard ({len(df)} records displayed)")
 
     # 📊 **Charts**
     st.subheader("📊 Car Brands Distribution")
