@@ -119,8 +119,8 @@ if uploaded_file:
             st.plotly_chart(fig_fuel_price)
 
     # 📜 **Filtered Data Table**
-    st.subheader("📜 Filtered Data")
+    st.subheader("📜 Filtered Data (Current dataset after applying your filters)")
     st.write(df)
 
 else:
-    st.warning("⚠️ Please upload a CSV file to proceed! (Make sure the dataset has the required columns)")
+    st.warning("⚠️ Please upload a CSV file to proceed! (Make sure the dataset has the required columns, such as 'brand', 'owner', 'transmission', 'fueltype', etc.)")
