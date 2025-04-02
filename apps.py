@@ -7,7 +7,7 @@ st.title("🚗 Used Car Market Dashboard")
 
 # 📂 **File Upload**
 st.sidebar.header("📂 Upload Your Dataset")
-uploaded_file = st.sidebar.file_uploader("Upload CSV File", type=["csv"])
+uploaded_file = st.sidebar.file_uploader("Upload your CSV file (Make sure it's in the correct format)", type=["csv"])
 
 if uploaded_file:
     # Load dataset
@@ -21,29 +21,29 @@ if uploaded_file:
         df["posteddate"] = pd.to_datetime(df["posteddate"], format="%b-%y", errors="coerce")
         df["posted_month"] = df["posteddate"].dt.strftime("%Y-%m")  # Extract Month-Year
     else:
-        st.error("⚠️ 'posteddate' column is missing in the dataset!")
+        st.error("⚠️ 'posteddate' column is missing in the dataset! Please make sure your data has a 'posteddate' column.")
 
-    # 🔍 **Sidebar Filters**
-    st.sidebar.header("🔍 Filters")
+    # 🔍 **Sidebar Filters** with explanations
+    st.sidebar.header("🔍 Filters (Use these to narrow down the data)")
 
     # 🏷 **Brand Filter**
     if "brand" in df.columns:
-        brand_filter = st.sidebar.multiselect("Filter by Brand:", df["brand"].unique(), key="brand_chart")
+        brand_filter = st.sidebar.multiselect("Filter by Brand:", df["brand"].unique(), help="Select one or more car brands to filter the data.")
         df = df[df["brand"].isin(brand_filter)] if brand_filter else df
 
     # 👤 **Owner Type Filter**
     if "owner" in df.columns:
-        owner_filter = st.sidebar.multiselect("Filter by Owner Type:", df["owner"].unique(), key="owner_chart")
+        owner_filter = st.sidebar.multiselect("Filter by Owner Type:", df["owner"].unique(), help="Choose the owner type (e.g., First Owner, Second Owner) to filter the data.")
         df = df[df["owner"].isin(owner_filter)] if owner_filter else df
 
     # ⚙️ **Transmission Filter**
     if "transmission" in df.columns:
-        trans_filter = st.sidebar.multiselect("Filter by Transmission:", df["transmission"].unique(), key="trans_chart")
+        trans_filter = st.sidebar.multiselect("Filter by Transmission Type:", df["transmission"].unique(), help="Select the type of transmission (Manual/Automatic).")
         df = df[df["transmission"].isin(trans_filter)] if trans_filter else df
 
     # ⛽ **Fuel Type Filter**
     if "fueltype" in df.columns:
-        fuel_filter = st.sidebar.multiselect("Filter by Fuel Type:", df["fueltype"].unique(), key="fuel_chart")
+        fuel_filter = st.sidebar.multiselect("Filter by Fuel Type:", df["fueltype"].unique(), help="Select the fuel type (Petrol/Diesel) to filter the data.")
         df = df[df["fueltype"].isin(fuel_filter)] if fuel_filter else df
 
     # 📏 **Kilometer & Year Filters**
@@ -60,9 +60,9 @@ if uploaded_file:
             min_km, max_km = 0, 100000  # Default values
             min_year, max_year = 2000, 2025
 
-        # Add sidebar sliders
-        km_filter = st.sidebar.slider("Kilometers Driven:", min_km, max_km, (min_km, max_km), key="km_chart")
-        year_filter = st.sidebar.slider("Year:", min_year, max_year, (min_year, max_year), key="year_chart")
+        # Add sidebar sliders with explanations
+        km_filter = st.sidebar.slider("Filter by Kilometers Driven (in thousands):", min_km, max_km, (min_km, max_km), help="Adjust this slider to choose a range for kilometers driven.")
+        year_filter = st.sidebar.slider("Filter by Year of Manufacture:", min_year, max_year, (min_year, max_year), help="Select the range of car manufacturing years.")
 
         # Apply filters
         df = df[(df["kmdriven"] >= km_filter[0]) & (df["kmdriven"] <= km_filter[1])]
@@ -80,7 +80,7 @@ if uploaded_file:
             min_price, max_price = 0, 1000000  # Default fallback values
 
         # Add price slider
-        price_filter = st.sidebar.slider("Filter by Asking Price:", min_price, max_price, (min_price, max_price))
+        price_filter = st.sidebar.slider("Filter by Asking Price (in dollars):", min_price, max_price, (min_price, max_price), help="Use this slider to adjust the asking price range.")
         df = df[(df["askprice"] >= price_filter[0]) & (df["askprice"] <= price_filter[1])]
 
     # 📊 **Visualizations**
@@ -123,4 +123,4 @@ if uploaded_file:
     st.write(df)
 
 else:
-    st.warning("⚠️ Please upload a CSV file to proceed!")
+    st.warning("⚠️ Please upload a CSV file to proceed! (Make sure the dataset has the required columns)")
