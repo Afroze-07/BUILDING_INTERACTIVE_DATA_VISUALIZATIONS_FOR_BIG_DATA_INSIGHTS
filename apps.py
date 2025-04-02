@@ -2,6 +2,33 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+# Add Custom CSS Styling
+st.markdown("""
+    <style>
+        .main {
+            background-color: #f4f7fc;
+            padding: 20px;
+            font-family: 'Helvetica', sans-serif;
+        }
+        .sidebar .sidebar-content {
+            background-color: #34495E;
+            color: white;
+            border-radius: 10px;
+        }
+        .stButton>button {
+            background-color: #1abc9c;
+            color: white;
+            font-weight: bold;
+        }
+        .stTextInput input {
+            border-radius: 5px;
+        }
+        .css-1d391kg {
+            background-color: #ecf0f1;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Title
 st.title("🚗 Used Car Market Dashboard")
 
@@ -65,6 +92,9 @@ if uploaded_file:
     df = df[(df["kmdriven"] >= km_filter[0]) & (df["kmdriven"] <= km_filter[1])] if "kmdriven" in df.columns else df
     df = df[(df["year"] >= year_filter[0]) & (df["year"] <= year_filter[1])] if "year" in df.columns else df
 
+    # Dynamic Title with Filter Counts
+    st.title(f"🚗 Used Car Market Dashboard ({len(df)} records displayed)")
+
     # 📊 **Charts**
     st.subheader("📊 Car Brands Distribution")
     if not df.empty:
@@ -110,5 +140,6 @@ if uploaded_file:
     # 📜 **Filtered Data Table**
     st.subheader("📜 Filtered Data")
     st.write(df)
+
 else:
     st.warning("⚠️ Please upload a CSV file to proceed!")
