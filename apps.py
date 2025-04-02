@@ -33,6 +33,7 @@ st.markdown("""
 st.title("🚗 Used Car Market Dashboard")
 
 # 📂 **File Upload**
+st.sidebar.header("🚀 Welcome to Our Dashboard! 🎉📊")
 st.sidebar.header("📂 Upload Your Dataset")
 uploaded_file = st.sidebar.file_uploader("Upload your CSV file (Make sure it's in the correct format)", type=["csv"])
 
@@ -50,7 +51,6 @@ if uploaded_file:
         st.error("⚠️ 'posteddate' column is missing in the dataset!")
 
     # 📌 **Sidebar Filters**
-    st.sidebar.header("🚀 Welcome to Our Dashboard! 🎉📊")
     st.sidebar.header("🔍 Filters")
 
     # Brand Filter
