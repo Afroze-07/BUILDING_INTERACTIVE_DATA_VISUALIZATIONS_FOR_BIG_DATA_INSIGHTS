@@ -118,6 +118,9 @@ if uploaded_file:
             fig_fuel_price = px.box(df, x="fueltype", y="askprice", color="fueltype", title="Fuel Type vs. Asking Price")
             st.plotly_chart(fig_fuel_price)
 
+    else:
+        st.warning("⚠️ No data available after applying the selected filters.")
+
     # 📜 **Filtered Data Table**
     st.subheader("📜 Filtered Data (Current dataset after applying your filters)")
     st.write(df)
