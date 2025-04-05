@@ -1,145 +1,184 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import base64
+from fpdf import FPDF
 
-# Add Custom CSS Styling
+# --- Page Setup ---
+st.set_page_config(page_title="Used Car Insights", layout="wide")
+
+# --- Branding ---
 st.markdown("""
-    <style>
-        .main {
-            background-color: #f4f7fc;
-            padding: 20px;
-            font-family: 'Helvetica', sans-serif;
-        }
-        .sidebar .sidebar-content {
-            background-color: #34495E;
-            color: white;
-            border-radius: 10px;
-        }
-        .stButton>button {
-            background-color: #1abc9c;
-            color: white;
-            font-weight: bold;
-        }
-        .stTextInput input {
-            border-radius: 5px;
-        }
-        .css-1d391kg {
-            background-color: #ecf0f1;
-        }
-    </style>
+    <h1 style='text-align: center; color: #FF4B4B;'>🚗 Used Car Insights Dashboard</h1>
+    <hr style='border-top: 3px solid #bbb;'>
 """, unsafe_allow_html=True)
 
-# Title
-st.title("🚗 Used Car Market Dashboard")
+# --- Theme Toggle ---
+theme = st.sidebar.radio("🎨 Select Theme", ["Dark", "Light"])
+if theme == "Dark":
+    st.markdown("""
+        <style>
+        body { background-color: #111; color: white; }
+        .st-bx, .stButton>button { color: white; background-color: #333; }
+        </style>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+        <style>
+        body { background-color: white; color: black; }
+        .st-bx, .stButton>button { color: black; background-color: #f0f0f0; }
+        </style>
+    """, unsafe_allow_html=True)
 
-# 📂 **File Upload**
-st.sidebar.header("🚀Welcome to Our Dashboard!📊")
-st.sidebar.header("📂 Upload Your Dataset")
-uploaded_file = st.sidebar.file_uploader("Upload your CSV file (Make sure it's in the correct format)", type=["csv"])
+# --- Upload File ---
+uploaded_file = st.file_uploader("📁 Upload Your Cleaned Used Car CSV File", type=["csv"])
 
-if uploaded_file:
-    # Load dataset
+if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
 
-    # Ensure consistent column names
-    df.columns = df.columns.str.lower().str.strip()
 
-    # 📅 **Fixing 'posteddate' Column**
-    if "posteddate" in df.columns:
-        df["posteddate"] = pd.to_datetime(df["posteddate"], format="%b-%y", errors="coerce")
+    # Normalize column names
+    df.columns = df.columns.str.strip().str.lower().str.replace(" ", "")
+
+    required_columns = ['brand', 'model', 'year', 'askprice', 'fueltype', 'transmission', 'owner', 'kmdriven']
+    missing_cols = [col for col in required_columns if col not in df.columns]
+
+    if missing_cols:
+        st.error(f"⚠️ The following required columns are missing in your CSV: {missing_cols}")
+        st.stop()
+
+    df["askprice"] = df["askprice"].astype(str).str.replace(r"[^0-9]", "", regex=True)
+    df["askprice"] = pd.to_numeric(df["askprice"], errors="coerce")
+    df["askprice"].fillna(df["askprice"].median(), inplace=True)
+    df["year"] = pd.to_numeric(df["year"], errors="coerce")
+
+    # --- Sidebar Filters ---
+    st.sidebar.title("🔍 Find the Best Car for You")
+    budget = st.sidebar.number_input("💰 Your Budget", 10000, 5000000, step=5000, value=300000)
+
+    fuel_types = df["fueltype"].dropna().unique().tolist()
+    selected_fuel = st.sidebar.selectbox("⛽ Fuel Type", ["All"] + fuel_types)
+
+    transmissions = df["transmission"].dropna().unique().tolist()
+    selected_trans = st.sidebar.selectbox("⚙️ Transmission", ["All"] + transmissions)
+
+    owners = df["owner"].dropna().unique().tolist()
+    selected_owner = st.sidebar.selectbox("👤 Owner", ["All"] + owners)
+
+    min_year, max_year = int(df["year"].min()), int(df["year"].max())
+    year_range = st.sidebar.slider("📅 Year Range", min_year, max_year, (min_year, max_year))
+
+    sort_option = st.sidebar.selectbox("📊 Sort By", ["askprice", "kmdriven", "year"])
+    unit_toggle = st.sidebar.radio("💲 Price Unit", ["INR", "Lakh"])
+    price_divisor = 100000 if unit_toggle == "Lakh" else 1
+
+    # --- Apply Filters ---
+    filtered = df.copy()
+    filtered = filtered[filtered["askprice"] <= budget]
+    if selected_fuel != "All":
+        filtered = filtered[filtered["fueltype"] == selected_fuel]
+    if selected_trans != "All":
+        filtered = filtered[filtered["transmission"] == selected_trans]
+    if selected_owner != "All":
+        filtered = filtered[filtered["owner"] == selected_owner]
+    filtered = filtered[(filtered["year"] >= year_range[0]) & (filtered["year"] <= year_range[1])]
+    filtered["displayprice"] = filtered["askprice"] / price_divisor
+
+    if not filtered.empty:
+        # --- Charts ---
+        st.subheader("📊 Car Price Visualizations")
+        chart_type = st.selectbox("📈 Choose Chart Type", ["Bar Chart", "Pie Chart", "Scatter Plot"])
+        if chart_type == "Bar Chart":
+            fig = px.bar(filtered, x="brand", y="displayprice", color="brand", title="Car Prices by Brand", labels={"displayprice": f"Price ({unit_toggle})"})
+        elif chart_type == "Pie Chart":
+            fig = px.pie(filtered, names="brand", title="Car Brand Distribution")
+        elif chart_type == "Scatter Plot":
+            fig = px.scatter(filtered, x="kmdriven", y="displayprice", color="brand", title="KM Driven vs Price", labels={"displayprice": f"Price ({unit_toggle})"})
+        st.plotly_chart(fig, use_container_width=True)
+
+        # --- Filtered Data ---
+        st.subheader("📋 Filtered Car Results")
+        st.dataframe(filtered[["brand", "model", "year", "askprice", "fueltype", "transmission", "owner"]])
+
+        # --- Top 3 Picks ---
+        st.markdown("### 🌟 Top 3 Picks")
+        top3 = filtered.sort_values(by=sort_option).head(3)
+
+        st.markdown("""
+            <style>
+            .top-pick-card {
+                display: flex;
+                align-items: center;
+                border: 1px solid #444;
+                border-radius: 10px;
+                padding: 15px;
+                margin-bottom: 15px;
+                transition: all 0.3s ease;
+                background: transparent;
+            }
+            .top-pick-card:hover {
+                box-shadow: 0 0 15px rgba(0,0,0,0.3);
+                transform: scale(1.02);
+            }
+            .top-pick-text {
+                color: inherit;
+            }
+            .top-pick-heading {
+                margin: 0;
+                font-size: 20px;
+                font-weight: bold;
+            }
+            .top-pick-sub {
+                margin: 0;
+                font-size: 14px;
+                opacity: 0.8;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        for _, row in top3.iterrows():
+            price_display = f"{int(row['askprice']/price_divisor)} {unit_toggle}" if unit_toggle == "Lakh" else f"₹{int(row['askprice'])}"
+            st.markdown(f"""
+                <div class="top-pick-card">
+                    <div class="top-pick-text">
+                        <p class="top-pick-heading">✅ {row['brand']} {row['model']} ({int(row['year'])}) – {price_display}</p>
+                        <p class="top-pick-sub">KM Driven: {int(row['kmdriven'])} | Fuel: {row['fueltype']} | Transmission: {row['transmission']}</p>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+        st.success("🎯 These cars are great picks within your budget!")
+
+        # --- Download CSV ---
+        csv = filtered.to_csv(index=False)
+        st.download_button("⬇️ Download Filtered Results", csv, file_name="filtered_cars.csv", mime="text/csv")
+
+        # --- Export PDF Report ---
+        st.markdown("### 📄 Export PDF Report")
+        def create_pdf(data):
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+            pdf.cell(200, 10, txt="Used Car Filtered Report", ln=True, align="C")
+            for _, row in data.iterrows():
+               price_text = f"{row['brand']} {row['model']} - INR {int(row['askprice'])}"
+               pdf.cell(200, 10, txt=price_text, ln=True)
+            return pdf.output(dest="S").encode("latin1")
+
+
+        if st.button("📤 Export to PDF"):
+            pdf_bytes = create_pdf(top3)
+            b64 = base64.b64encode(pdf_bytes).decode()
+            href = f'<a href="data:application/octet-stream;base64,{b64}" download="Top3_Cars_Report.pdf">📄 Click to Download PDF</a>'
+            st.markdown(href, unsafe_allow_html=True)
+
+        # --- Brand-wise Summary ---
+        st.subheader("📊 Brand-wise Average Price")
+        brand_avg = filtered.groupby("brand")["askprice"].mean().reset_index()
+        brand_avg["askprice"] = (brand_avg["askprice"] / price_divisor).round(2)
+        brand_avg.columns = ["Brand", f"Avg Price ({unit_toggle})"]
+        st.dataframe(brand_avg)
     else:
-        st.error("⚠️ 'posteddate' column is missing in the dataset!")
-
-    # 📌 **Sidebar Filters**
-    st.sidebar.header("🔍 Filters")
-
-    # Brand Filter
-    brand_filter = st.sidebar.multiselect("Filter by Brand:", df["brand"].unique(), key="brand_chart")
-    brand_df = df[df["brand"].isin(brand_filter)] if brand_filter else df
-
-    # Owner Type Filter
-    owner_filter = st.sidebar.multiselect("Filter by Owner Type:", df["owner"].unique(), key="owner_chart")
-    owner_df = df[df["owner"].isin(owner_filter)] if owner_filter else df
-
-    # Transmission Filter
-    trans_filter = st.sidebar.multiselect("Filter by Transmission:", df["transmission"].unique(), key="trans_chart")
-    fuel_filter = st.sidebar.multiselect("Filter by Fuel Type:", df["fueltype"].unique(), key="fuel_chart")
-
-    # Kilometer & Year Filters
-    if "kmdriven" in df.columns and "year" in df.columns:
-        df["kmdriven"] = df["kmdriven"].astype(str).str.replace(r"[^\d]", "", regex=True)
-        df["kmdriven"] = pd.to_numeric(df["kmdriven"], errors="coerce")
-        df["year"] = pd.to_numeric(df["year"], errors="coerce")
-        df = df.dropna(subset=["kmdriven", "year"])
-
-        min_km, max_km = int(df["kmdriven"].min()), int(df["kmdriven"].max())
-        min_year, max_year = int(df["year"].min()), int(df["year"].max())
-
-        km_filter = st.sidebar.slider("Filter by Kilometers Driven:", min_km, max_km, (min_km, max_km), key="km_chart")
-        year_filter = st.sidebar.slider("Filter by Year:", min_year, max_year, (min_year, max_year), key="year_chart")
-
-    # Posted Month Filter
-    if "posteddate" in df.columns:
-        df["posted_month"] = df["posteddate"].dt.strftime("%Y-%m")
-        month_filter = st.sidebar.multiselect("Filter by Month:", df["posted_month"].unique(), key="month_chart")
-
-    # Apply filters
-    df = df[df["brand"].isin(brand_filter)] if brand_filter else df
-    df = df[df["owner"].isin(owner_filter)] if owner_filter else df
-    df = df[df["transmission"].isin(trans_filter)] if trans_filter else df
-    df = df[df["fueltype"].isin(fuel_filter)] if fuel_filter else df
-    df = df[df["posted_month"].isin(month_filter)] if month_filter else df
-    df = df[(df["kmdriven"] >= km_filter[0]) & (df["kmdriven"] <= km_filter[1])] if "kmdriven" in df.columns else df
-    df = df[(df["year"] >= year_filter[0]) & (df["year"] <= year_filter[1])] if "year" in df.columns else df
-
-    # Dynamic Title with Filter Counts
-    st.subheader(f"Showing {len(df)} Cars After Applying Filters")
-
-    # 📊 **Charts**
-    st.subheader("📊 Car Brands Distribution")
-    if not df.empty:
-        fig_brand = px.bar(df, x="brand", title="Car Brands Count", color="brand")
-        st.plotly_chart(fig_brand)
-
-    st.subheader("👤 Owner Type Distribution")
-    if not df.empty:
-        fig_owner = px.pie(df, names="owner", title="Owner Type Percentage")
-        st.plotly_chart(fig_owner)
-
-    st.subheader("⚙️ Transmission vs. Fuel Type")
-    if not df.empty:
-        fig_trans_fuel = px.histogram(df, x="transmission", color="fueltype", barmode="group", title="Transmission vs. Fuel Type")
-        st.plotly_chart(fig_trans_fuel)
-
-    st.subheader("📏 Kilometers Driven Over Time")
-    if not df.empty:
-        df["kmdriven (in '000s)"] = df["kmdriven"] / 1000
-        fig_km = px.scatter(df, x="year", y="kmdriven (in '000s)", title="Kilometers Driven Over Time", color="year")
-        st.plotly_chart(fig_km)
-
-    st.subheader("📅 Cars Listed Over Time")
-    if not df.empty and "posted_month" in df.columns:
-        fig_time = px.line(df.groupby("posted_month").size().reset_index(name="count"), x="posted_month", y="count", title="Car Listings Over Time")
-        st.plotly_chart(fig_time)
-
-    st.subheader("💰 Asking Price by Fuel Type")
-    if not df.empty:
-        fig_fuel_price = px.box(df, x="fueltype", y="askprice", color="fueltype", title="Fuel Type vs. Asking Price")
-        st.plotly_chart(fig_fuel_price)
-
-    st.subheader("⚙️ Transmission Type vs. Kilometers Driven")
-    if not df.empty:
-        fig_trans_km = px.scatter(df, x="transmission", y="kmdriven", color="transmission", title="Transmission Type vs. Kilometers Driven")
-        st.plotly_chart(fig_trans_km)
-
-    st.subheader("👤 Owner Type vs. Asking Price")
-    if not df.empty:
-        fig_owner_price = px.bar(df, x="owner", y="askprice", color="owner", title="Owner Type vs. Asking Price")
-        st.plotly_chart(fig_owner_price)
-
-    # 📜 **Filtered Data Table**
-    st.subheader("📜 Filtered Data")
-    st.write(df)
-
+        st.warning("⚠️ No cars match your filters.")
 else:
-    st.warning("⚠️ Please upload a CSV file to proceed!")
+    st.info("📂 Please upload a CSV file to continue.")
