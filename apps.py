@@ -58,7 +58,7 @@ set_theme(theme)
 
 # --- Branding ---
 st.markdown("""
-    <h1 style='text-align: center;'>🚗 Used Car Insights Dashboard</h1>
+    <h1 style='text-align: center;' color:'white;'>🚗 Used Car Insights Dashboard</h1>
     <hr style='border-top: 3px solid #bbb;'>
 """, unsafe_allow_html=True)
 
