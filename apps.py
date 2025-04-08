@@ -7,35 +7,66 @@ from fpdf import FPDF
 # --- Page Setup ---
 st.set_page_config(page_title="Used Car Insights", layout="wide")
 
+# --- Theme Setup ---
+st.sidebar.title("🧑‍🎨 Appearance Settings")
+theme = st.sidebar.radio("🎨 Select Theme", ["☀️ Light", "🌙 Dark"], index=0)
+
+def set_theme(theme_choice):
+    if "Dark" in theme_choice:
+        st.session_state["theme_mode"] = "dark"
+        custom_css = """
+        <style>
+        body {
+            background-color: #121212;
+            color: white;
+        }
+        .reportview-container, .main, .block-container {
+            background-color: #121212;
+            color: white;
+        }
+        table, th, td {
+            color: white !important;
+        }
+        .stDataFrame div {
+            color: white !important;
+        }
+        </style>
+        """
+    else:
+        st.session_state["theme_mode"] = "light"
+        custom_css = """
+        <style>
+        body {
+            background-color: white;
+            color: black;
+        }
+        .reportview-container, .main, .block-container {
+            background-color: white;
+            color: black;
+        }
+        table, th, td {
+            color: black !important;
+        }
+        .stDataFrame div {
+            color: black !important;
+        }
+        </style>
+        """
+    st.markdown(custom_css, unsafe_allow_html=True)
+
+set_theme(theme)
+
 # --- Branding ---
 st.markdown("""
-    <h1 style='text-align: center; color: #FF4B4B;'>🚗 Used Car Insights Dashboard</h1>
+    <h1 style='text-align: center;'>🚗 Used Car Insights Dashboard</h1>
     <hr style='border-top: 3px solid #bbb;'>
 """, unsafe_allow_html=True)
-
-# --- Theme Toggle ---
-theme = st.sidebar.radio("🎨 Select Theme", ["Dark", "Light"])
-if theme == "Dark":
-    st.markdown("""
-        <style>
-        body { background-color: #111; color: white; }
-        .st-bx, .stButton>button { color: white; background-color: #333; }
-        </style>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-        <style>
-        body { background-color: white; color: black; }
-        .st-bx, .stButton>button { color: black; background-color: #f0f0f0; }
-        </style>
-    """, unsafe_allow_html=True)
 
 # --- Upload File ---
 uploaded_file = st.file_uploader("📁 Upload Your Cleaned Used Car CSV File", type=["csv"])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
-
 
     # Normalize column names
     df.columns = df.columns.str.strip().str.lower().str.replace(" ", "")
@@ -161,10 +192,9 @@ if uploaded_file is not None:
             pdf.set_font("Arial", size=12)
             pdf.cell(200, 10, txt="Used Car Filtered Report", ln=True, align="C")
             for _, row in data.iterrows():
-               price_text = f"{row['brand']} {row['model']} - INR {int(row['askprice'])}"
-               pdf.cell(200, 10, txt=price_text, ln=True)
+                price_text = f"{row['brand']} {row['model']} - INR {int(row['askprice'])}"
+                pdf.cell(200, 10, txt=price_text, ln=True)
             return pdf.output(dest="S").encode("latin1")
-
 
         if st.button("📤 Export to PDF"):
             pdf_bytes = create_pdf(top3)
