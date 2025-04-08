@@ -58,8 +58,17 @@ set_theme(theme)
 
 # --- Branding ---
 st.markdown("""
-    <h1 style='text-align: center; color: white;'>🚗 Used Car Insights Dashboard</h1>
-    <hr style='border-top: 3px solid white;'>
+    <style>
+        h1.custom-title {
+            text-align: center;
+            color: var(--text-color);
+        }
+        hr.custom-line {
+            border-top: 3px solid var(--text-color);
+        }
+    </style>
+    <h1 class='custom-title'>🚗 Used Car Insights Dashboard</h1>
+    <hr class='custom-line'>
 """, unsafe_allow_html=True)
 
 # --- Upload File ---
